@@ -42,6 +42,24 @@ public class hashmaptest2 {
         // Time complexity of the loop is O(n) where n is the number of key-value pairs in the HashMap
 
         // HashMap is a tool used to solve problems related to key-value pairs.
+
+// Idea 1
+        // Iterate and count for every query how many times it occurs in the array.
+        // Time complexity: O(n^2)  
+        // 
+
+// Idea 2
+        // Use HashMap to store the frequency of each element in the array.
+        // For each query, directly retrieve the frequency from the HashMap.
+        // create HashMap of given array and store frequency of each element.
+        int[] arr = { 1, 2, 3, 1, 2, 1, 4, 5, 3, 2, 1 };    
+
+        HashMap<Integer, Integer> hm2 = new HashMap<>();
+
+        for (int num : arr) {
+            hm2.put(num, hm2.getOrDefault(num, 0) + 1);
+        }
+
     }
 }
 
