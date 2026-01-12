@@ -1,63 +1,79 @@
-# ☕ Java DSA Journey
+# 🚀 Java Data Structures & Algorithms Foundation
 
-> Documenting my daily progress in mastering Data Structures and Algorithms with Java.
+> Comprehensive DSA foundation with Java - Building strong fundamentals for technical interviews
 
 ![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![DSA](https://img.shields.io/badge/DSA-Problem_Solving-blue?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Active_Learning-success?style=for-the-badge)
+![DSA](https://img.shields.io/badge/DSA-Foundation-blue?style=for-the-badge)
+![Progress](https://img.shields.io/badge/Progress-Active-success?style=for-the-badge)
 
 ---
 
-## 📅 Daily Learning Log
+## 📊 Foundation Progress Tracker
 
-### Day 1 - 2025-12-18
-- **Topic**: HashMap
-- **Problem**: **Frequency Queries**
-  - *Goal*: Given an array and set of queries, find the frequency of each query element in the array efficiently.
-- **Key Learnings**:
-  - **Logic**: Utilized `HashMap<Integer, Integer>` to store element frequencies. This reduces the lookup time to O(1) on average.
-  - **Syntax**: Learned that Java method signatures should use `int arr[]` or `int[] arr`, and that `int arr[n]` is invalid syntax.
-  - **Input**: Implemented `Scanner` to read dynamic array sizes and elements from standard input.
-- **Code**: [arrayByHashMap.java](HashMap/arrayByHashMap.java)
+### 🟢 **Core Programming Concepts**
+| Topic | Status |
+|-------|--------|
+| **Basics of Java** | 🚧 |
+| **Conditional Statements & Loops** | 🚧 |
+| **Pattern Problems** | 🚧 |
+| **Functions** | 🚧 |
+| **Problem Solving Intro** | 🚧 |
+| **Time Complexity** | 🚧 |
+
+### 🟡 **Data Structures Fundamentals**
+| Topic | Status |
+|-------|--------|
+| **Arrays** | 🚧 |
+| **2D Arrays** | 🚧 |
+| **Strings** | 🚧 |
+| **Bit Manipulation** | 🚧 |
+| **HashMap** | ✅ |
+| **Recursion** | 🚧 |
+
+### 🔴 **Algorithms & Advanced Topics**
+| Topic | Status |
+|-------|--------|
+| **Sorting** | ⭕ |
+| **Searching** | ⭕ |
+| **Classes & Objects** | ⭕ |
+| **LinkedList** | ⭕ |
+| **Stacks** | ⭕ |
+| **Queue** | ⭕ |
+| **Heap/PriorityQueue** | ⭕ |
+| **Trees** | ⭕ |
+| **Dynamic Programming** | ⭕ |
+| **Graphs** | ⭕ |
+
+### 📈 **Overall Progress**
+- **Completed**: HashMap
+- **In Progress**: Core concepts and data structures
+- **Pending**: Advanced algorithms
+
+
+### 🏆 **Key Implementations**
+- **HashMap Frequency Counter**: [arrayByHashMap.java](HashMap/arrayByHashMap.java)
+- **Recursive Fibonacci**: [fibonacci.java](Recursion/fibonacci.java)
+
+> **Legend**: ✅ Completed | 🚧 In Progress | ⭕ Not Started
 
 ---
 
-## 📚 Topics Dashboard
+## 🛠️ Technical Setup
 
-| Topic | Status | Notes |
-|-------|--------|-------|
-| **Arrays & Strings** | 🚧 | |
-| **HashMap** | ✅ | `put`, `get`, `frequency counting` |
-| **Linked Lists** | ⭕ | |
-| **Stacks & Queues** | ⭕ | |
-| **Trees & Graphs** | ⭕ | |
-| **Sorting & Searching** | ⭕ | |
-| **Dynamic Programming** | ⭕ | |
-
-> **Status Legend**: ✅ Completed | 🚧 In Progress | ⭕ Pending
-
----
-
-## 🛠️ Setup & Usage
-
-### 1. Prerequisites
-- [Java Development Kit (JDK)](https://adoptium.net/) installed.
-
-### 2. Running the Code
-Navigate to the directory and compile the Java files:
+**Requirements**: Java 8+ | IDE: IntelliJ IDEA/Eclipse
 
 ```bash
-# Compile
+# Clone and run
+git clone <repository-url>
+cd java-dsa
 javac HashMap/arrayByHashMap.java
-
-# Run
-java -cp . HashMap/arrayByHashMap
-# (Note: Depending on your specific folder structure and package declarations)
+java HashMap.arrayByHashMap
 ```
 
-## 🤝 Resources
-- [Java Documentation](https://docs.oracle.com/en/java/)
+## 🔗 Resources
+- [Oracle Java Documentation](https://docs.oracle.com/en/java/)
+- [Big O Cheat Sheet](https://www.bigocheatsheet.com/)
 - [GeeksforGeeks DSA](https://www.geeksforgeeks.org/data-structures/)
 
 ---
-*Happy Learning!* 🎓
+*Building Strong DSA Foundations* 💪
