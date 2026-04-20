@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkedList Visualizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --bg:#0d0f1a; --surface:#13162a; --card:#1a1e35; --border:#252a45;
+      --accent:#6c63ff; --accent2:#ff6584; --green:#43e5a0;
+      --yellow:#ffd166; --text:#e4e8ff; --muted:#7a82aa;
+    }
+    body {
+      background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
+      min-height:100vh; display:flex; flex-direction:column; align-items:center;
+      padding:28px 16px;
+    }
+    h1 {
+      font-size:2rem; font-weight:900;
+      background:linear-gradient(90deg,var(--accent),var(--accent2));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      margin-bottom:4px; text-align:center;
+    }
+    .subtitle { color:var(--muted); font-size:0.88rem; margin-bottom:28px; text-align:center; }
+    .card {
+      background:var(--card); border:1px solid var(--border); border-radius:16px;
+      padding:22px; width:100%; max-width:980px; margin-bottom:18px;
+    }
+    .card-title {
+      font-size:0.72rem; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px;
+    }
+
+    /* Tabs */
+    .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px; }
+    .tab {
+      padding:8px 18px; border-radius:8px; border:1px solid var(--border);
+      background:var(--surface); color:var(--muted); font-size:0.85rem;
+      font-weight:600; cursor:pointer; transition:all 0.2s;
+    }
+    .tab.active { background:linear-gradient(135deg,var(--accent),#a78bfa); color:#fff; border-color:transparent; }
+    .tab:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
+
+    /* Controls */
+    .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+    .ctrl-group { display:flex; flex-direction:column; gap:5px; }
+    label { font-size:0.7rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+    input[type="number"] {
+      background:var(--surface); border:1px solid var(--border); border-radius:8px;
+      color:var(--text); font-family:'JetBrains Mono',monospace; font-size:0.9rem;
+      padding:9px 13px; outline:none; transition:border-color 0.2s; width:130px;
+    }
+    select {
+      background:var(--surface); border:1px solid var(--border); border-radius:8px;
+      color:var(--text); font-size:0.88rem; padding:9px 13px; outline:none; cursor:pointer;
+    }
+    input:focus, select:focus { border-color:var(--accent); }
+    button {
+      padding:9px 20px; border:none; border-radius:8px; cursor:pointer;
+      font-family:'Inter',sans-serif; font-weight:700; font-size:0.88rem; transition:all 0.2s;
+    }
+    .btn-primary { background:linear-gradient(135deg,var(--accent),#a78bfa); color:#fff; }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(108,99,255,0.4); }
+    .btn-step { background:var(--surface); color:var(--yellow); border:1px solid var(--yellow); }
+    .btn-step:hover:not(:disabled) { background:rgba(255,209,102,0.1); }
+    .btn-step:disabled { opacity:0.35; cursor:not-allowed; }
+    .btn-secondary { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-danger { background:linear-gradient(135deg,#ff4466,var(--accent2)); color:#fff; }
+    .btn-danger:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,101,132,0.4); }
+
+    /* Speed slider */
+    .slider-row { display:flex; align-items:center; gap:10px; }
+    input[type="range"] {
+      -webkit-appearance:none; width:110px; height:4px;
+      background:var(--border); border-radius:2px; outline:none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance:none; width:14px; height:14px;
+      border-radius:50%; background:var(--accent); cursor:pointer;
+    }
+
+    /* Viz layout */
+    .viz-layout { display:grid; grid-template-columns:1fr 320px; gap:18px; }
+    @media(max-width:720px) { .viz-layout { grid-template-columns:1fr; } }
+
+    /* LinkedList canvas scroll wrapper */
+    .ll-canvas-wrap { overflow-x:auto; overflow-y:hidden; border-radius:8px; }
+    .ll-canvas {
+      min-height:200px; min-width:max-content;
+      display:flex; align-items:center;
+      padding:48px 12px 20px; gap:0;
+    }
+
+    /* Node */
+    .ll-node-wrap { display:flex; align-items:center; flex-shrink:0; }
+    .node-enter { animation:nodeIn 0.35s ease; }
+    @keyframes nodeIn { from { opacity:0; transform:scale(0.6) translateY(12px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
+    .ll-node {
+      display:flex; flex-direction:column; align-items:stretch;
+      border-radius:12px; border:2px solid var(--border);
+      overflow:visible; background:var(--surface); min-width:76px;
+      transition:all 0.3s ease; position:relative;
+    }
+    .ll-node.state-head { border-color:var(--accent); box-shadow:0 0 16px rgba(108,99,255,0.3); }
+    .ll-node.state-tail { border-color:var(--green); box-shadow:0 0 16px rgba(67,229,160,0.25); }
+    .ll-node.state-curr {
+      border-color:var(--yellow); background:rgba(255,209,102,0.08);
+      transform:translateY(-8px) scale(1.07);
+      box-shadow:0 12px 28px rgba(255,209,102,0.3);
+    }
+    .ll-node.state-found {
+      border-color:var(--green); background:rgba(67,229,160,0.1);
+      transform:translateY(-8px) scale(1.09);
+      box-shadow:0 12px 28px rgba(67,229,160,0.4);
+    }
+    .ll-node.state-delete {
+      border-color:var(--accent2); background:rgba(255,101,132,0.1);
+      transform:scale(0.88); opacity:0.5;
+    }
+    .ll-node.state-prev {
+      border-color:var(--accent); background:rgba(108,99,255,0.08);
+      transform:translateY(-4px);
+    }
+
+    .node-label {
+      font-size:0.58rem; font-weight:700; text-align:center; padding:3px 6px;
+      letter-spacing:0.06em; text-transform:uppercase;
+    }
+    .lbl-head { background:rgba(108,99,255,0.25); color:var(--accent); }
+    .lbl-tail { background:rgba(67,229,160,0.2); color:var(--green); }
+    .lbl-both { background:rgba(255,209,102,0.2); color:var(--yellow); }
+
+    .node-val {
+      font-family:'JetBrains Mono',monospace; font-size:1.15rem; font-weight:700;
+      text-align:center; padding:12px 10px 6px; color:var(--text);
+    }
+    .node-next {
+      font-size:0.6rem; color:var(--muted); text-align:center;
+      padding:2px 6px 10px; font-family:'JetBrains Mono',monospace;
+    }
+
+    /* Pointer badge above node */
+    .ptr-badge {
+      position:absolute; top:-22px; left:50%; transform:translateX(-50%);
+      font-size:0.6rem; font-family:'JetBrains Mono',monospace; font-weight:700;
+      padding:2px 6px; border-radius:4px; white-space:nowrap; pointer-events:none;
+    }
+    .pbadge-curr { background:rgba(255,209,102,0.2); color:var(--yellow); }
+    .pbadge-prev { background:rgba(108,99,255,0.2); color:var(--accent); }
+
+    /* Arrow */
+    .ll-arrow { display:flex; align-items:center; flex-shrink:0; padding:0 2px; }
+
+    /* Null */
+    .ll-null {
+      font-family:'JetBrains Mono',monospace; font-size:0.82rem;
+      color:var(--accent2); padding:7px 11px;
+      border:2px dashed rgba(255,101,132,0.5); border-radius:8px;
+      margin-left:4px; flex-shrink:0; opacity:0.75;
+    }
+
+    /* Empty state */
+    .ll-empty {
+      flex:1; display:flex; align-items:center; justify-content:center;
+      color:var(--muted); font-size:0.9rem; font-style:italic;
+    }
+
+    /* Code panel */
+    .code-panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .code-header { background:rgba(108,99,255,0.12); padding:8px 14px; font-size:0.72rem; color:var(--muted); font-weight:600; border-bottom:1px solid var(--border); }
+    .code-body { padding:10px 0; overflow-x:auto; max-height:340px; overflow-y:auto; }
+    .code-line {
+      display:flex; align-items:stretch; padding:2px 0;
+      font-family:'JetBrains Mono',monospace; font-size:0.77rem;
+      color:var(--muted); transition:background 0.2s;
+    }
+    .code-line.hl-active { background:rgba(255,209,102,0.1); color:var(--text); }
+    .code-line.hl-active .ln { color:var(--yellow); }
+    .code-line.hl-green { background:rgba(67,229,160,0.1); color:var(--green); }
+    .code-line.hl-red   { background:rgba(255,101,132,0.1); color:var(--accent2); }
+    .ln { min-width:30px; text-align:right; padding-right:10px; color:rgba(122,130,170,0.35); user-select:none; font-size:0.68rem; align-self:center; }
+    .lt { padding-right:14px; white-space:pre; }
+
+    /* Status */
+    .status-bar { text-align:center; font-size:0.88rem; min-height:26px; color:var(--muted); margin-top:10px; }
+    .status-bar b { color:var(--text); }
+
+    /* Log */
+    .log { display:flex; flex-direction:column; gap:7px; max-height:200px; overflow-y:auto; }
+    .log-entry {
+      background:var(--surface); border-left:3px solid var(--border);
+      border-radius:0 8px 8px 0; padding:7px 12px;
+      font-size:0.79rem; font-family:'JetBrains Mono',monospace; color:var(--muted);
+      opacity:0; transform:translateY(5px); transition:all 0.25s ease;
+    }
+    .log-entry.show { opacity:1; transform:none; }
+    .l-insert { border-color:var(--accent); color:var(--text); }
+    .l-delete { border-color:var(--accent2); color:var(--accent2); font-weight:700; }
+    .l-found  { border-color:var(--green);  color:var(--green);  font-weight:700; }
+    .l-miss   { border-color:var(--accent2); color:var(--accent2); font-weight:700; }
+    .l-step   { border-color:var(--yellow); color:var(--text); }
+    .l-info   { border-color:var(--border); }
+
+    /* Legend */
+    .legend { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:0.76rem; color:var(--muted); }
+    .ldot { width:10px; height:10px; border-radius:3px; }
+
+    .section { display:none; }
+    .section.active { display:block; }
+  </style>
+</head>
+<body>
+
+<h1>LinkedList Visualizer</h1>
+<p class="subtitle">Build, traverse, search & delete — step by step 🔗</p>
+
+<!-- Tabs + Controls -->
+<div class="card" style="padding-bottom:14px;">
+  <div class="tabs" id="tabRow">
+    <div class="tab active" onclick="switchTab('insert')">Insert</div>
+    <div class="tab" onclick="switchTab('delete')">Delete</div>
+    <div class="tab" onclick="switchTab('search')">Search</div>
+    <div class="tab" onclick="switchTab('traverse')">Traverse</div>
+    <div class="tab" onclick="switchTab('reverse')">Reverse</div>
+  </div>
+
+  <!-- INSERT -->
+  <div id="sec-insert" class="section active">
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Value</label>
+        <input type="number" id="ins-val" value="60"/>
+      </div>
+      <div class="ctrl-group">
+        <label>Position</label>
+        <select id="ins-pos" onchange="toggleIdxInput()">
+          <option value="tail">At Tail</option>
+          <option value="head">At Head</option>
+          <option value="index">At Index</option>
+        </select>
+      </div>
+      <div class="ctrl-group" id="idx-group" style="display:none;">
+        <label>Index</label>
+        <input type="number" id="ins-idx" value="1" min="0" style="width:90px"/>
+      </div>
+      <div class="ctrl-group" style="flex-direction:row;align-items:flex-end;gap:8px;">
+        <button class="btn-primary" onclick="doInsert()">+ Insert</button>
+        <button class="btn-danger" onclick="clearList()">✕ Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE -->
+  <div id="sec-delete" class="section">
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Value to Delete</label>
+        <input type="number" id="del-val" value="30"/>
+      </div>
+      <div class="ctrl-group" style="flex-direction:row;align-items:flex-end;gap:8px;">
+        <button class="btn-primary" onclick="initOp('delete')">▶ Run</button>
+        <button class="btn-step" id="del-step-btn" onclick="tickStep()" disabled>Step →</button>
+        <button class="btn-secondary" onclick="resetOp()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div id="sec-search" class="section">
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Value to Search</label>
+        <input type="number" id="srch-val" value="30"/>
+      </div>
+      <div class="ctrl-group" style="flex-direction:row;align-items:flex-end;gap:8px;">
+        <button class="btn-primary" onclick="initOp('search')">▶ Run</button>
+        <button class="btn-step" id="srch-step-btn" onclick="tickStep()" disabled>Step →</button>
+        <button class="btn-secondary" onclick="resetOp()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRAVERSE -->
+  <div id="sec-traverse" class="section">
+    <div class="controls">
+      <div class="ctrl-group" style="flex-direction:row;align-items:flex-end;gap:8px;">
+        <button class="btn-primary" onclick="initOp('traverse')">▶ Run</button>
+        <button class="btn-step" id="trav-step-btn" onclick="tickStep()" disabled>Step →</button>
+        <button class="btn-secondary" onclick="resetOp()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVERSE -->
+  <div id="sec-reverse" class="section">
+    <div class="controls">
+      <div class="ctrl-group" style="flex-direction:row;align-items:flex-end;gap:8px;">
+        <button class="btn-primary" onclick="initOp('reverse')">▶ Run</button>
+        <button class="btn-step" id="rev-step-btn" onclick="tickStep()" disabled>Step →</button>
+        <button class="btn-secondary" onclick="resetOp()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Visualizer + Code -->
+<div class="card">
+  <div class="viz-layout">
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div class="card-title" style="margin-bottom:0;">Linked List</div>
+        <div class="slider-row">
+          <span style="font-size:0.72rem;color:var(--muted)">Slow</span>
+          <input type="range" id="speed" min="200" max="1800" value="900" step="100"/>
+          <span style="font-size:0.72rem;color:var(--muted)">Fast</span>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="ldot" style="border:2px solid var(--accent);background:rgba(108,99,255,0.15)"></div>Head</div>
+        <div class="legend-item"><div class="ldot" style="border:2px solid var(--green);background:rgba(67,229,160,0.13)"></div>Tail</div>
+        <div class="legend-item"><div class="ldot" style="border:2px solid var(--yellow);background:rgba(255,209,102,0.1)"></div>Current</div>
+        <div class="legend-item"><div class="ldot" style="border:2px solid var(--accent);background:rgba(108,99,255,0.08)"></div>Prev</div>
+        <div class="legend-item"><div class="ldot" style="border:2px solid var(--accent2);background:rgba(255,101,132,0.1)"></div>Delete/Miss</div>
+      </div>
+      <div class="ll-canvas-wrap">
+        <div class="ll-canvas" id="llCanvas"></div>
+      </div>
+      <div class="status-bar" id="statusBar">Ready.</div>
+    </div>
+    <div>
+      <div class="card-title">Java Code</div>
+      <div class="code-panel">
+        <div class="code-header" id="codeHeader">— pick an operation above —</div>
+        <div class="code-body" id="codeBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <div class="card-title">Step Log</div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+var list = [10, 20, 30, 40, 50];   // default example list
+var steps = [];
+var stepIdx = 0;
+var timer = null;
+var currentTab = 'insert';
+var currentStepBtn = null;
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  stopTimer();
+  steps = []; stepIdx = 0;
+  currentTab = tab;
+
+  var tabEls = document.querySelectorAll('.tab');
+  var tabNames = ['insert','delete','search','traverse','reverse'];
+  tabEls.forEach(function(t,i){ t.classList.toggle('active', tabNames[i] === tab); });
+
+  document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('sec-' + tab).classList.add('active');
+
+  currentStepBtn = document.getElementById(tab.slice(0,3) === 'tra' ? 'trav-step-btn' :
+                   tab.slice(0,3) === 'rev' ? 'rev-step-btn' :
+                   tab.slice(0,3) === 'del' ? 'del-step-btn' :
+                   tab.slice(0,3) === 'sea' ? 'srch-step-btn' : null);
+
+  var codeFns = { delete:codeDelete, search:codeSearch, traverse:codeTraverse, reverse:codeReverse };
+  if (codeFns[tab]) {
+    document.getElementById('codeHeader').textContent = tab + '()';
+    renderCode(codeFns[tab]());
+  } else {
+    document.getElementById('codeHeader').textContent = '— insert to build the list —';
+    document.getElementById('codeBody').innerHTML = '';
+  }
+
+  renderList({});
+  setStatus('Ready.');
+}
+
+function toggleIdxInput() {
+  document.getElementById('idx-group').style.display =
+    document.getElementById('ins-pos').value === 'index' ? 'flex' : 'none';
+}
+
+// ── Render list ───────────────────────────────────────────────────────────────
+function renderList(hl) {
+  // hl: { index: 'state-curr'|'state-found'|'state-delete'|'state-prev', _curr, _prev }
+  var canvas = document.getElementById('llCanvas');
+  canvas.innerHTML = '';
+
+  if (list.length === 0) {
+    canvas.innerHTML = '<div class="ll-empty">List is empty — insert some nodes!</div>';
+    return;
+  }
+
+  list.forEach(function(val, i) {
+    var wrap = document.createElement('div');
+    wrap.className = 'll-node-wrap';
+
+    var node = document.createElement('div');
+    node.className = 'll-node';
+
+    // head/tail label
+    if (list.length === 1) {
+      var lbl = el('div', 'node-label lbl-both', 'HEAD / TAIL');
+      node.appendChild(lbl);
+    } else if (i === 0) {
+      node.classList.add('state-head');
+      node.appendChild(el('div', 'node-label lbl-head', 'HEAD'));
+    } else if (i === list.length - 1) {
+      node.classList.add('state-tail');
+      node.appendChild(el('div', 'node-label lbl-tail', 'TAIL'));
+    }
+
+    // pointer badges
+    if (hl && hl._curr === i) {
+      var pb = el('div', 'ptr-badge pbadge-curr', 'curr');
+      node.appendChild(pb);
+    }
+    if (hl && hl._prev === i) {
+      var pb2 = el('div', 'ptr-badge pbadge-prev', 'prev');
+      node.appendChild(pb2);
+    }
+
+    node.appendChild(el('div', 'node-val', val));
+    node.appendChild(el('div', 'node-next', i < list.length - 1 ? 'next →' : 'next: null'));
+
+    // apply highlight state (overrides head/tail border)
+    if (hl && hl[i]) node.classList.add(hl[i]);
+
+    wrap.appendChild(node);
+
+    // arrow to next
+    if (i < list.length - 1) {
+      var isActive = hl && hl._curr === i;
+      var arrowColor = isActive ? 'var(--yellow)' : 'var(--muted)';
+      var arrDiv = document.createElement('div');
+      arrDiv.className = 'll-arrow';
+      arrDiv.innerHTML =
+        '<svg width="40" height="20" viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg">' +
+        '<defs><marker id="ah' + i + '" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">' +
+        '<path d="M0,0 L0,6 L7,3 z" fill="' + arrowColor + '"/></marker></defs>' +
+        '<line x1="1" y1="10" x2="32" y2="10" stroke="' + arrowColor + '" stroke-width="2" marker-end="url(#ah' + i + ')"/>' +
+        '</svg>';
+      wrap.appendChild(arrDiv);
+    }
+
+    canvas.appendChild(wrap);
+  });
+
+  // null terminator
+  canvas.appendChild(el('div', 'll-null', 'null'));
+}
+
+function el(tag, cls, text) {
+  var d = document.createElement(tag);
+  d.className = cls;
+  if (text !== undefined) d.textContent = text;
+  return d;
+}
+
+// ── Log / status ──────────────────────────────────────────────────────────────
+function addLog(msg, cls) {
+  var log = document.getElementById('log');
+  var e = document.createElement('div');
+  e.className = 'log-entry ' + (cls || 'l-info');
+  e.textContent = msg;
+  log.prepend(e);
+  requestAnimationFrame(function(){ e.classList.add('show'); });
+  while (log.children.length > 30) log.removeChild(log.lastChild);
+}
+
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+function setStatus(html) { document.getElementById('statusBar').innerHTML = html; }
+
+// ── Code panel ────────────────────────────────────────────────────────────────
+function renderCode(lines) {
+  var body = document.getElementById('codeBody');
+  body.innerHTML = '';
+  lines.forEach(function(line, i) {
+    var row = document.createElement('div');
+    row.className = 'code-line';
+    row.id = 'cl' + i;
+    row.innerHTML = '<span class="ln">' + (i+1) + '</span><span class="lt">' + esc(line) + '</span>';
+    body.appendChild(row);
+  });
+}
+
+function hlLine(idx, cls) {
+  document.querySelectorAll('.code-line').forEach(function(e){
+    e.classList.remove('hl-active','hl-green','hl-red');
+  });
+  var e = document.getElementById('cl' + idx);
+  if (e) { e.classList.add(cls || 'hl-active'); e.scrollIntoView({block:'nearest'}); }
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Code templates ────────────────────────────────────────────────────────────
+function codeDelete() { return [
+  'void deleteByValue(int val) {',
+  '    if (head == null) return;',
+  '    if (head.data == val) {',
+  '        head = head.next;',
+  '        return;',
+  '    }',
+  '    Node prev = null, curr = head;',
+  '    while (curr != null) {',
+  '        if (curr.data == val) {',
+  '            prev.next = curr.next;',
+  '            return;',
+  '        }',
+  '        prev = curr;',
+  '        curr = curr.next;',
+  '    }',
+  '    // value not found',
+  '}',
+]; }
+
+function codeSearch() { return [
+  'int search(int val) {',
+  '    Node curr = head;',
+  '    int index = 0;',
+  '    while (curr != null) {',
+  '        if (curr.data == val)',
+  '            return index;  // found',
+  '        curr = curr.next;',
+  '        index++;',
+  '    }',
+  '    return -1;  // not found',
+  '}',
+]; }
+
+function codeTraverse() { return [
+  'void printList() {',
+  '    Node curr = head;',
+  '    while (curr != null) {',
+  '        System.out.print(curr.data + " -> ");',
+  '        curr = curr.next;',
+  '    }',
+  '    System.out.println("null");',
+  '}',
+]; }
+
+function codeReverse() { return [
+  'void reverse() {',
+  '    Node prev = null;',
+  '    Node curr = head;',
+  '    Node next;',
+  '    while (curr != null) {',
+  '        next = curr.next;     // save next',
+  '        curr.next = prev;     // reverse link',
+  '        prev = curr;          // advance prev',
+  '        curr = next;          // advance curr',
+  '    }',
+  '    head = prev;',
+  '}',
+]; }
+
+// ── Build steps ───────────────────────────────────────────────────────────────
+function buildSteps(op) {
+  var s = [];
+
+  function push(hl, code, codeClass, status, log, logCls, listSnap) {
+    s.push({ hl: hl || {}, code: code, codeClass: codeClass,
+             status: status, log: log, logCls: logCls,
+             listSnap: listSnap ? listSnap.slice() : null });
+  }
+
+  if (op === 'delete') {
+    var target = parseInt(document.getElementById('del-val').value);
+    var snap = list.slice();
+
+    push({}, 0, null, 'deleteByValue(' + target + ') called', 'deleteByValue(' + target + ') called', 'l-info');
+
+    if (snap.length === 0) {
+      push({}, 1, null, 'List is empty, return.', 'List empty — nothing to delete', 'l-miss');
+      return s;
+    }
+
+    push({}, 1, null, 'head != null, continue', 'head is not null');
+
+    if (snap[0] === target) {
+      push({ 0: 'state-curr', _curr: 0 }, 2, null,
+           'head.data == ' + target + ' → match!', 'head matches ' + target, 'l-step');
+      var after = snap.slice(1);
+      push({}, 3, 'hl-green', 'head = head.next → deleted head node',
+           'Deleted ' + target + ' from HEAD', 'l-delete', after);
+      return s;
+    }
+
+    push({ 0: 'state-head' }, 2, null,
+         'head.data (' + snap[0] + ') != ' + target, 'head.data != ' + target);
+    push({ 0: 'state-head' }, 6, null, 'prev = null, curr = head', 'prev = null, curr = head');
+
+    var found = false;
+    for (var i = 0; i < snap.length; i++) {
+      var hl = {};
+      hl._curr = i;
+      hl[i] = 'state-curr';
+      if (i > 0) { hl._prev = i - 1; hl[i - 1] = 'state-prev'; }
+
+      push(hl, 7, null, 'curr = node(' + snap[i] + '), checking…', 'Visiting node(' + snap[i] + ') at index ' + i);
+
+      if (snap[i] === target) {
+        var hl2 = {}; hl2[i] = 'state-found';
+        if (i > 0) { hl2[i - 1] = 'state-prev'; hl2._prev = i - 1; }
+        push(hl2, 8, null, 'curr.data == ' + target + ' → found!', 'Found ' + target + ' at index ' + i, 'l-found');
+        var after2 = snap.filter(function(_, j){ return j !== i; });
+        push({}, 9, 'hl-green', 'prev.next = curr.next → node removed',
+             'Deleted node(' + target + ') at index ' + i, 'l-delete', after2);
+        found = true;
+        break;
+      }
+
+      push(hl, 11, null, snap[i] + ' != ' + target + ', move forward', 'prev = curr, curr = curr.next');
+    }
+
+    if (!found) {
+      push({}, 14, 'hl-red', target + ' not found in list.', target + ' not found', 'l-miss');
+    }
+  }
+
+  if (op === 'search') {
+    var target = parseInt(document.getElementById('srch-val').value);
+    push({}, 0, null, 'search(' + target + ') called', 'search(' + target + ') called', 'l-info');
+    push({}, 1, null, 'curr = head, index = 0', 'curr = head, index = 0');
+
+    var found = false;
+    for (var i = 0; i < list.length; i++) {
+      var hl = {}; hl[i] = 'state-curr'; hl._curr = i;
+      push(hl, 3, null, 'Visiting node(' + list[i] + ') at index ' + i,
+           'curr = node(' + list[i] + '), index = ' + i);
+
+      if (list[i] === target) {
+        var hl2 = {}; hl2[i] = 'state-found';
+        push(hl2, 4, 'hl-green',
+             'Found <b>' + target + '</b> at index <b>' + i + '</b>!',
+             'Found ' + target + ' at index ' + i, 'l-found');
+        found = true;
+        break;
+      }
+      push(hl, 6, null, list[i] + ' != ' + target + ', advance', 'curr = curr.next, index++');
+    }
+
+    if (!found) {
+      push({}, 9, 'hl-red', target + ' not in list — return -1', target + ' not found → -1', 'l-miss');
+    }
+  }
+
+  if (op === 'traverse') {
+    push({}, 0, null, 'printList() called', 'printList() called', 'l-info');
+    push({}, 1, null, 'curr = head', 'curr = head');
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var hl = {}; hl[i] = 'state-curr'; hl._curr = i;
+      push(hl, 2, null, 'curr = node(' + list[i] + '), not null', 'curr != null → enter loop body');
+      out.push(list[i]);
+      push(hl, 3, null, 'Print: ' + out.join(' → ') + ' →', 'print: ' + list[i], 'l-step');
+      push(hl, 4, null, 'curr = curr.next', 'advance curr');
+    }
+    push({}, 2, null, 'curr = null, loop ends', list.join(' → ') + ' → null', 'l-found');
+    push({}, 5, 'hl-green', 'Print "null" — done!', 'printList() complete', 'l-found');
+  }
+
+  if (op === 'reverse') {
+    var snap = list.slice();
+    push({}, 0, null, 'reverse() called', 'reverse() called', 'l-info');
+    push({}, 1, null, 'prev = null', 'prev = null');
+    push({}, 2, null, 'curr = head (' + snap[0] + ')', 'curr = head');
+    push({}, 3, null, 'next declared', 'next declared');
+
+    var prev = -1, curr = 0;
+    for (var step = 0; step < snap.length; step++) {
+      var hl = {};
+      hl[curr] = 'state-curr'; hl._curr = curr;
+      if (prev >= 0) { hl[prev] = 'state-prev'; hl._prev = prev; }
+
+      push(hl, 4, null, 'curr = node(' + snap[curr] + '), loop body', 'curr != null → process node(' + snap[curr] + ')');
+      push(hl, 5, null,
+           'next = ' + (curr + 1 < snap.length ? 'node(' + snap[curr + 1] + ')' : 'null'),
+           'save next = ' + (curr + 1 < snap.length ? snap[curr + 1] : 'null'), 'l-step');
+      push(hl, 6, null,
+           'curr.next = ' + (prev >= 0 ? 'node(' + snap[prev] + ')' : 'null') + ' (reverse link!)',
+           'node(' + snap[curr] + ').next → ' + (prev >= 0 ? snap[prev] : 'null'), 'l-step');
+      push(hl, 7, null, 'prev = node(' + snap[curr] + ')', 'advance prev');
+      push(hl, 8, null, 'curr = ' + (curr + 1 < snap.length ? 'node(' + snap[curr + 1] + ')' : 'null'), 'advance curr');
+
+      prev = curr; curr++;
+    }
+
+    var reversed = snap.slice().reverse();
+    push({}, 4, null, 'curr = null, loop ends', 'loop complete, curr = null');
+    push({}, 10, 'hl-green', 'head = prev = node(' + reversed[0] + ') — new head!',
+         'head = node(' + reversed[0] + ')', 'l-step', reversed);
+    push({}, 11, 'hl-green', 'Reversed: ' + reversed.join(' → ') + ' → null',
+         'Reversed: ' + reversed.join(' → ') + ' → null', 'l-found', reversed);
+  }
+
+  return s;
+}
+
+// ── Animation engine ──────────────────────────────────────────────────────────
+function getSpeed() {
+  var slider = document.getElementById('speed');
+  return slider ? (2100 - parseInt(slider.value)) : 900;
+}
+
+function stopTimer() {
+  if (timer) { clearInterval(timer); timer = null; }
+}
+
+function initOp(op) {
+  if (list.length === 0) { setStatus('List is empty — insert nodes first!'); return; }
+  stopTimer();
+  clearLog();
+  steps = buildSteps(op);
+  stepIdx = 0;
+
+  var codeFns = { delete:codeDelete, search:codeSearch, traverse:codeTraverse, reverse:codeReverse };
+  document.getElementById('codeHeader').textContent = op + '()';
+  renderCode(codeFns[op]());
+
+  var stepBtnIds = { delete:'del-step-btn', search:'srch-step-btn', traverse:'trav-step-btn', reverse:'rev-step-btn' };
+  if (stepBtnIds[op]) document.getElementById(stepBtnIds[op]).disabled = false;
+
+  timer = setInterval(function() {
+    if (stepIdx >= steps.length) { stopTimer(); return; }
+    applyStep(steps[stepIdx++]);
+  }, getSpeed());
+}
+
+function tickStep() {
+  // If no steps built yet, build them and start step mode
+  if (steps.length === 0) {
+    if (list.length === 0) { setStatus('List is empty — insert nodes first!'); return; }
+    clearLog();
+    steps = buildSteps(currentTab);
+    stepIdx = 0;
+    var codeFns = { delete:codeDelete, search:codeSearch, traverse:codeTraverse, reverse:codeReverse };
+    if (codeFns[currentTab]) {
+      document.getElementById('codeHeader').textContent = currentTab + '()';
+      renderCode(codeFns[currentTab]());
+    }
+    stopTimer();
+  }
+  if (stepIdx < steps.length) applyStep(steps[stepIdx++]);
+}
+
+function applyStep(step) {
+  if (step.listSnap) list = step.listSnap.slice();
+  renderList(step.hl || {});
+  if (step.code !== undefined) hlLine(step.code, step.codeClass);
+  if (step.status) setStatus(step.status);
+  if (step.log) addLog(step.log, step.logCls || 'l-info');
+  if (stepIdx >= steps.length) stopTimer();
+}
+
+function resetOp() {
+  stopTimer();
+  steps = []; stepIdx = 0;
+  ['del-step-btn','srch-step-btn','trav-step-btn','rev-step-btn'].forEach(function(id){
+    var e = document.getElementById(id);
+    if (e) e.disabled = true;
+  });
+  renderList({});
+  setStatus('Ready.');
+  document.querySelectorAll('.code-line').forEach(function(e){
+    e.classList.remove('hl-active','hl-green','hl-red');
+  });
+}
+
+// ── Insert ────────────────────────────────────────────────────────────────────
+function doInsert() {
+  var val = parseInt(document.getElementById('ins-val').value);
+  var pos = document.getElementById('ins-pos').value;
+  if (isNaN(val)) { setStatus('Enter a valid number.'); return; }
+
+  if (pos === 'head') {
+    list.unshift(val);
+    addLog('Inserted ' + val + ' at HEAD', 'l-insert');
+    document.getElementById('codeHeader').textContent = 'insertAtHead()';
+    renderCode([
+      'void insertAtHead(int val) {',
+      '    Node newNode = new Node(val);',
+      '    newNode.next = head;',
+      '    head = newNode;',
+      '}',
+    ]);
+  } else if (pos === 'tail') {
+    list.push(val);
+    addLog('Inserted ' + val + ' at TAIL', 'l-insert');
+    document.getElementById('codeHeader').textContent = 'insertAtTail()';
+    renderCode([
+      'void insertAtTail(int val) {',
+      '    Node newNode = new Node(val);',
+      '    if (head == null) { head = newNode; return; }',
+      '    Node curr = head;',
+      '    while (curr.next != null)',
+      '        curr = curr.next;',
+      '    curr.next = newNode;',
+      '}',
+    ]);
+  } else {
+    var idx = parseInt(document.getElementById('ins-idx').value);
+    if (isNaN(idx) || idx < 0 || idx > list.length) {
+      setStatus('Index must be 0 – ' + list.length); return;
+    }
+    list.splice(idx, 0, val);
+    addLog('Inserted ' + val + ' at index ' + idx, 'l-insert');
+    document.getElementById('codeHeader').textContent = 'insertAt(index)';
+    renderCode([
+      'void insertAt(int idx, int val) {',
+      '    Node newNode = new Node(val);',
+      '    if (idx == 0) { newNode.next = head; head = newNode; return; }',
+      '    Node curr = head; int i = 0;',
+      '    while (curr != null && i < idx - 1)',
+      '        curr = curr.next; i++;',
+      '    newNode.next = curr.next;',
+      '    curr.next = newNode;',
+      '}',
+    ]);
+  }
+
+  renderList({});
+  setStatus('List length: <b>' + list.length + '</b>');
+}
+
+function clearList() {
+  list = [];
+  steps = []; stepIdx = 0;
+  stopTimer();
+  clearLog();
+  renderList({});
+  setStatus('List cleared.');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderList({});
+setStatus('Example list loaded: 10 → 20 → 30 → 40 → 50');
+addLog('Default list: 10 → 20 → 30 → 40 → 50 — try Delete, Search, Traverse or Reverse!', 'l-info');
+</script>
+</body>
+</html>
