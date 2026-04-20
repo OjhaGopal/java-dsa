@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sorted &amp; Rotated Visualizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --bg:#0d0f1a; --surface:#13162a; --card:#1a1e35; --border:#252a45;
+      --accent:#6c63ff; --accent2:#ff6584; --green:#43e5a0;
+      --yellow:#ffd166; --text:#e4e8ff; --muted:#7a82aa;
+    }
+    body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:28px 16px; }
+    h1 { font-size:1.8rem; font-weight:900; background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:4px; text-align:center; }
+    .subtitle { color:var(--muted); font-size:0.85rem; margin-bottom:24px; text-align:center; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px; width:100%; max-width:920px; margin-bottom:18px; }
+    .card-title { font-size:0.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; }
+
+    /* Controls */
+    .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+    .ctrl-group { display:flex; flex-direction:column; gap:5px; }
+    label { font-size:0.7rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+    input[type="text"] { background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:0.88rem; padding:9px 13px; outline:none; transition:border-color 0.2s; width:350px; }
+    input:focus { border-color:var(--accent); }
+    button { padding:9px 20px; border:none; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif; font-weight:700; font-size:0.88rem; transition:all 0.2s; }
+    .btn-primary { background:linear-gradient(135deg,var(--accent),#a78bfa); color:#fff; }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(108,99,255,0.4); }
+    .btn-step { background:var(--surface); color:var(--yellow); border:1px solid var(--yellow); }
+    .btn-step:hover:not(:disabled) { background:rgba(255,209,102,0.1); }
+    .btn-step:disabled { opacity:0.3; cursor:not-allowed; }
+    .btn-secondary { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* Main layout: array + code side by side */
+    .viz-layout { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    @media(max-width:680px) { .viz-layout { grid-template-columns:1fr; } }
+
+    /* Array panel */
+    .array-outer { display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .ptr-row { display:flex; gap:8px; justify-content:center; min-height:22px; flex-wrap:wrap; }
+    .ptr-slot { width:62px; display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .ptr-badge { font-size:0.6rem; font-family:'JetBrains Mono',monospace; padding:2px 5px; border-radius:4px; font-weight:700; white-space:nowrap; }
+    .ptr-i  { background:rgba(108,99,255,0.25); color:var(--accent); }
+    .ptr-j  { background:rgba(255,209,102,0.25); color:var(--yellow); }
+
+    .array-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+    .cell { display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .cell-box {
+      width:62px; height:62px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+      font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700;
+      border:2px solid var(--border); background:var(--surface); transition:all 0.35s ease;
+    }
+    .cell-idx { font-size:0.62rem; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+
+    .cell-box.cur-i  { border-color:var(--accent); background:rgba(108,99,255,0.15); color:var(--accent); transform:scale(1.06); box-shadow:0 5px 18px rgba(108,99,255,0.3); }
+    .cell-box.cur-j  { border-color:var(--yellow); background:rgba(255,209,102,0.15); color:var(--yellow); transform:scale(1.06); box-shadow:0 5px 18px rgba(255,209,102,0.3); }
+    .cell-box.drop   { border-color:var(--accent2); background:rgba(255,101,132,0.18); color:var(--accent2); animation:pulse 0.55s ease; }
+    .cell-box.done-ok  { border-color:var(--green); background:rgba(67,229,160,0.13); transition:all 0.4s; }
+    .cell-box.done-bad { border-color:var(--accent2); background:rgba(255,101,132,0.1); }
+    @keyframes pulse { 0%{transform:scale(1)} 45%{transform:scale(1.14)} 100%{transform:scale(1)} }
+
+    /* Variables display */
+    .vars { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+    .var-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 16px; text-align:center; min-width:80px; transition:border-color 0.3s; }
+    .var-box.active { border-color:var(--accent); }
+    .var-name { font-size:0.68rem; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+    .var-val  { font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:700; color:var(--text); margin-top:2px; transition:color 0.3s; }
+    .var-val.changed { color:var(--yellow); }
+
+    /* Code panel */
+    .code-panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .code-header { background:rgba(108,99,255,0.12); padding:8px 14px; font-size:0.72rem; color:var(--muted); font-weight:600; border-bottom:1px solid var(--border); }
+    .code-body { padding:12px 0; }
+    .code-line {
+      display:flex; align-items:stretch; padding:2px 0; font-family:'JetBrains Mono',monospace;
+      font-size:0.8rem; color:var(--muted); transition:background 0.25s;
+    }
+    .code-line.active-line { background:rgba(255,209,102,0.1); color:var(--text); }
+    .code-line.active-line .line-num { color:var(--yellow); }
+    .code-line.highlight-return-true  { background:rgba(67,229,160,0.12); color:var(--green); }
+    .code-line.highlight-return-false { background:rgba(255,101,132,0.12); color:var(--accent2); }
+    .line-num { min-width:36px; text-align:right; padding-right:12px; color:rgba(122,130,170,0.4); user-select:none; font-size:0.72rem; align-self:center; }
+    .line-text { padding-right:14px; white-space:pre; }
+
+    /* Status */
+    .status-bar { text-align:center; font-size:0.9rem; min-height:28px; color:var(--muted); margin:10px 0 0; }
+    .status-bar b { color:var(--text); }
+    .result-badge { display:inline-block; padding:4px 14px; border-radius:20px; font-weight:700; font-size:0.88rem; }
+    .result-true  { background:rgba(67,229,160,0.18); color:var(--green); border:1px solid var(--green); }
+    .result-false { background:rgba(255,101,132,0.18); color:var(--accent2); border:1px solid var(--accent2); }
+
+    /* Log */
+    .log { display:flex; flex-direction:column; gap:7px; max-height:260px; overflow-y:auto; }
+    .log-entry { background:var(--surface); border-left:3px solid var(--border); border-radius:0 8px 8px 0; padding:8px 13px; font-size:0.8rem; font-family:'JetBrains Mono',monospace; color:var(--muted); opacity:0; transform:translateY(5px); transition:all 0.25s ease; }
+    .log-entry.show { opacity:1; transform:none; }
+    .log-entry.t-compare { border-color:var(--accent); color:var(--text); }
+    .log-entry.t-drop    { border-color:var(--accent2); color:var(--accent2); font-weight:700; }
+    .log-entry.t-ok      { border-color:rgba(108,99,255,0.3); }
+    .log-entry.t-true    { border-color:var(--green); color:var(--green); font-weight:700; }
+    .log-entry.t-false   { border-color:var(--accent2); color:var(--accent2); font-weight:700; }
+  </style>
+</head>
+<body>
+
+<h1>Sorted &amp; Rotated Visualizer</h1>
+<p class="subtitle">LeetCode 1752 — mirroring your Java code step by step</p>
+
+<!-- Controls -->
+<div class="card">
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>nums[] (comma-separated)</label>
+      <input type="text" id="arrayInput" value="3, 4, 5, 1, 2"/>
+    </div>
+    <div class="ctrl-group" style="flex-direction:row;align-items:flex-end;gap:10px;">
+      <button class="btn-primary" onclick="startViz()">▶ Run</button>
+      <button class="btn-step" id="stepBtn" onclick="stepOnce()" disabled>Step →</button>
+      <button class="btn-secondary" onclick="resetAll()">↺ Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Viz + Code side by side -->
+<div class="card">
+  <div class="viz-layout">
+
+    <!-- Left: array + variables -->
+    <div>
+      <div class="card-title">Array Visualization</div>
+      <div class="array-outer">
+        <div class="ptr-row" id="ptrRow"></div>
+        <div class="array-row" id="arrayDisplay"></div>
+      </div>
+      <div class="vars" id="varsDisplay">
+        <div class="var-box"><div class="var-name">n</div><div class="var-val" id="v-n">—</div></div>
+        <div class="var-box"><div class="var-name">i</div><div class="var-val" id="v-i">—</div></div>
+        <div class="var-box"><div class="var-name">(i+1)%n</div><div class="var-val" id="v-j">—</div></div>
+        <div class="var-box"><div class="var-name">count</div><div class="var-val" id="v-count">0</div></div>
+      </div>
+      <div class="status-bar" id="statusBar">Enter nums[] and click Run.</div>
+    </div>
+
+    <!-- Right: code -->
+    <div>
+      <div class="card-title">Your Java Code</div>
+      <div class="code-panel">
+        <div class="code-header">arraysortedrotated.java → check()</div>
+        <div class="code-body" id="codeBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <div class="card-title">Step-by-step dry run log</div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+  // Exact code lines from your Java file (check method only)
+  const CODE_LINES = [
+    'public boolean check(int[] nums) {',
+    '    int count = 0;',
+    '    int n = nums.length;',
+    '',
+    '    for (int i = 0; i < n; i++) {',
+    '        if (nums[i] > nums[(i+1)%n]) {',
+    '            count++;',
+    '        }',
+    '    }',
+    '    return count <= 1;',
+    '}',
+  ];
+
+  // Which code lines to highlight for each step type
+  // Line indices are 0-based into CODE_LINES
+  const LINE = { init_count:1, init_n:2, for_loop:4, if_check:5, count_inc:6, return:9 };
+
+  let arr = [], steps = [], currentStep = -1;
+
+  function buildCodePanel() {
+    const body = document.getElementById('codeBody');
+    body.innerHTML = '';
+    CODE_LINES.forEach((text, idx) => {
+      const row = document.createElement('div');
+      row.className = 'code-line';
+      row.id = `cl-${idx}`;
+      const num = document.createElement('div');
+      num.className = 'line-num';
+      num.textContent = idx + 1;
+      const txt = document.createElement('div');
+      txt.className = 'line-text';
+      txt.textContent = text || ' ';
+      row.appendChild(num);
+      row.appendChild(txt);
+      body.appendChild(row);
+    });
+  }
+
+  function highlightCodeLine(lineIdx, extraClass) {
+    CODE_LINES.forEach((_, idx) => {
+      const el = document.getElementById(`cl-${idx}`);
+      el.className = 'code-line';
+    });
+    if (lineIdx >= 0) {
+      const el = document.getElementById(`cl-${lineIdx}`);
+      el.className = `code-line ${extraClass || 'active-line'}`;
+      el.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    }
+  }
+
+  function parseArr() {
+    return document.getElementById('arrayInput').value
+      .split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  }
+
+  // Build all steps mirroring exactlly the Java loop
+  function buildSteps(nums) {
+    const n = nums.length;
+    const steps = [];
+    // Step: int count = 0
+    steps.push({ type:'init_count', count:0, n, i:-1, j:-1 });
+    // Step: int n = nums.length
+    steps.push({ type:'init_n', count:0, n, i:-1, j:-1 });
+    let count = 0;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      // for header
+      steps.push({ type:'for_loop', count, n, i, j });
+      // if check
+      const isDrop = nums[i] > nums[j];
+      steps.push({ type:'if_check', count, n, i, j, isDrop, val_i:nums[i], val_j:nums[j] });
+      if (isDrop) {
+        count++;
+        steps.push({ type:'count_inc', count, n, i, j, val_i:nums[i], val_j:nums[j] });
+      }
+    }
+    // return
+    steps.push({ type:'return', count, n, i:n, j:-1, result: count <= 1 });
+    return steps;
+  }
+
+  function renderArray(step) {
+    const display = document.getElementById('arrayDisplay');
+    const ptrRow  = document.getElementById('ptrRow');
+    display.innerHTML = '';
+    ptrRow.innerHTML  = '';
+
+    const slots = [];
+    arr.forEach((val, idx) => {
+      const cell = document.createElement('div'); cell.className = 'cell';
+      const box  = document.createElement('div'); box.className  = 'cell-box';
+      box.id = `cell-${idx}`;
+      box.textContent = val;
+      const idxEl = document.createElement('div'); idxEl.className = 'cell-idx'; idxEl.textContent = idx;
+      cell.appendChild(box); cell.appendChild(idxEl);
+      display.appendChild(cell);
+      const slot = document.createElement('div'); slot.className = 'ptr-slot';
+      ptrRow.appendChild(slot); slots.push(slot);
+    });
+
+    if (!step || step.i < 0) return;
+
+    const { i, j, type, isDrop } = step;
+
+    arr.forEach((_, idx) => {
+      const box = document.getElementById(`cell-${idx}`);
+      if (type === 'return') {
+        box.classList.add(step.result ? 'done-ok' : 'done-bad');
+        return;
+      }
+      if (isDrop && (idx === i || idx === j)) {
+        box.classList.add('drop');
+      } else if (idx === i) {
+        box.classList.add('cur-i');
+      } else if (idx === j) {
+        box.classList.add('cur-j');
+      }
+    });
+
+    // Pointer labels
+    if (type !== 'return' && i >= 0) {
+      const byIdx = {};
+      if (i < arr.length) {
+        byIdx[i] = byIdx[i] || [];
+        byIdx[i].push({ cls:'ptr-i', txt:`i=${i}` });
+      }
+      if (j >= 0 && j !== i) {
+        byIdx[j] = byIdx[j] || [];
+        byIdx[j].push({ cls:'ptr-j', txt:`(${i}+1)%${arr.length}=${j}` });
+      } else if (j >= 0) {
+        byIdx[i].push({ cls:'ptr-j', txt:`j=${j}` });
+      }
+      Object.entries(byIdx).forEach(([idxStr, badges]) => {
+        badges.forEach(b => {
+          const badge = document.createElement('div');
+          badge.className = `ptr-badge ${b.cls}`;
+          badge.textContent = b.txt;
+          slots[parseInt(idxStr)].appendChild(badge);
+        });
+      });
+    }
+  }
+
+  function updateVars(step) {
+    const vn = document.getElementById('v-n');
+    const vi = document.getElementById('v-i');
+    const vj = document.getElementById('v-j');
+    const vc = document.getElementById('v-count');
+    vn.textContent = step.n >= 0 ? step.n : '—';
+    vi.textContent = step.i >= 0 ? step.i : '—';
+    vj.textContent = (step.j >= 0) ? step.j : '—';
+    vc.textContent = step.count;
+    // Flash count yellow on increment
+    if (step.type === 'count_inc') { vc.classList.add('changed'); setTimeout(()=>vc.classList.remove('changed'),600); }
+  }
+
+  function updateStatus(step) {
+    const bar = document.getElementById('statusBar');
+    if (!step) { bar.textContent = ''; return; }
+    const {type, i, j, val_i, val_j, isDrop, count, result} = step;
+    if (type === 'init_count') bar.innerHTML = 'Initialize <b>count = 0</b>';
+    else if (type === 'init_n') bar.innerHTML = `Initialize <b>n = ${step.n}</b>`;
+    else if (type === 'for_loop') bar.innerHTML = `Loop iteration: <b>i = ${i}</b>`;
+    else if (type === 'if_check') {
+      const op = isDrop ? '>' : '<=';
+      bar.innerHTML = `nums[${i}]=${val_i} <b>${op}</b> nums[${j}]=${val_j} → <b>${isDrop?'DROP ❗':'OK ✓'}</b>`;
+    }
+    else if (type === 'count_inc') bar.innerHTML = `count++ → <b>count = ${count}</b>`;
+    else if (type === 'return') {
+      bar.innerHTML = `<span class="result-badge ${result?'result-true':'result-false'}">${result?'✅ return true':'❌ return false'}</span>&nbsp; count=${count} ${result?'≤':'>'} 1`;
+    }
+  }
+
+  function addLog(step, idx) {
+    const log = document.getElementById('log');
+    const entry = document.createElement('div'); entry.className = 'log-entry';
+    const num = `[Step ${idx+1}]`;
+    const {type, i, j, val_i, val_j, isDrop, count, n, result} = step;
+    if (type === 'init_count') { entry.classList.add('t-ok'); entry.textContent = `${num}  int count = 0`; }
+    else if (type === 'init_n') { entry.classList.add('t-ok'); entry.textContent = `${num}  int n = nums.length = ${n}`; }
+    else if (type === 'for_loop') { entry.classList.add('t-compare'); entry.textContent = `${num}  for loop: i=${i}, check i < n (${i} < ${n}) → true`; }
+    else if (type === 'if_check') {
+      const wrap = j === 0 ? ' ⟲ wrap-around' : '';
+      if (isDrop) { entry.classList.add('t-drop'); entry.textContent = `${num}  nums[${i}]=${val_i} > nums[(${i}+1)%${n}=${j}]=${val_j}${wrap}  ➜  DROP!`; }
+      else { entry.classList.add('t-ok'); entry.textContent = `${num}  nums[${i}]=${val_i} <= nums[(${i}+1)%${n}=${j}]=${val_j}${wrap}  →  OK`; }
+    }
+    else if (type === 'count_inc') { entry.classList.add('t-drop'); entry.textContent = `${num}  count++  →  count = ${count}`; }
+    else if (type === 'return') {
+      entry.classList.add(result?'t-true':'t-false');
+      entry.textContent = `${num}  return count<=1  →  ${count}<=1 is ${result}  →  return ${result}`;
+    }
+    log.appendChild(entry);
+    requestAnimationFrame(() => entry.classList.add('show'));
+    entry.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  function getCodeLine(type) {
+    switch(type) {
+      case 'init_count': return [LINE.init_count, 'active-line'];
+      case 'init_n':     return [LINE.init_n,     'active-line'];
+      case 'for_loop':   return [LINE.for_loop,   'active-line'];
+      case 'if_check':   return [LINE.if_check,   'active-line'];
+      case 'count_inc':  return [LINE.count_inc,  'active-line'];
+      case 'return':     return [LINE.return,      null]; // handled below
+      default: return [-1, ''];
+    }
+  }
+
+  function applyStep(idx) {
+    if (idx < 0 || idx >= steps.length) return;
+    currentStep = idx;
+    const step = steps[idx];
+    renderArray(step);
+    updateVars(step);
+    updateStatus(step);
+    addLog(step, idx);
+
+    // highlight code
+    let [lineIdx, cls] = getCodeLine(step.type);
+    if (step.type === 'return') cls = step.result ? 'highlight-return-true' : 'highlight-return-false';
+    highlightCodeLine(lineIdx, cls);
+
+    const done = step.type === 'return';
+    document.getElementById('stepBtn').disabled = done || currentStep >= steps.length - 1;
+  }
+
+  function stepOnce() { if (currentStep + 1 < steps.length) applyStep(currentStep + 1); }
+
+  function startViz() {
+    arr = parseArr();
+    if (!arr.length) { alert('Please enter a valid array.'); return; }
+    document.getElementById('log').innerHTML = '';
+    steps = buildSteps(arr);
+    currentStep = -1;
+    document.getElementById('v-n').textContent = '—';
+    document.getElementById('v-i').textContent = '—';
+    document.getElementById('v-j').textContent = '—';
+    document.getElementById('v-count').textContent = '0';
+    document.getElementById('statusBar').textContent = 'Click "Step →" to walk through the code.';
+    renderArray(null);
+    highlightCodeLine(-1);
+    document.getElementById('stepBtn').disabled = false;
+    document.getElementById('arrayInput').value = arr.join(', ');
+  }
+
+  function resetAll() {
+    steps = []; currentStep = -1;
+    document.getElementById('arrayDisplay').innerHTML = '';
+    document.getElementById('ptrRow').innerHTML = '';
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('statusBar').textContent = 'Enter nums[] and click Run.';
+    ['v-n','v-i','v-j'].forEach(id => document.getElementById(id).textContent = '—');
+    document.getElementById('v-count').textContent = '0';
+    document.getElementById('stepBtn').disabled = true;
+    highlightCodeLine(-1);
+    arr = parseArr(); renderArray(null);
+  }
+
+  // Init
+  buildCodePanel();
+  arr = parseArr();
+  renderArray(null);
+</script>
+</body>
+</html>
