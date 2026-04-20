@@ -1,0 +1,152 @@
+{
+  "topics": [
+    {
+      "id": "LinkedList",
+      "label": "Linked List",
+      "dir": "../../LinkedList",
+      "testsDir": "../../LinkedList/tests",
+      "sharedFiles": ["ListNode.java"],
+      "nodeDefinition": "public class ListNode {\n    int val;\n    ListNode next;\n    ListNode(int val) { this.val = val; }\n    ListNode(int val, ListNode next) { this.val = val; this.next = next; }\n}",
+      "problems": [
+        {
+          "id": "InsertAtHead",
+          "title": "Insert at Head",
+          "difficulty": "Easy",
+          "link": "https://leetcode.com/problems/design-linked-list/",
+          "description": "Given the head of a linked list and an integer val, insert a new node with that value at the beginning of the list and return the new head.",
+          "examples": [
+            { "input": "head = [2,3,4], val = 1", "output": "[1,2,3,4]" },
+            { "input": "head = [], val = 5",       "output": "[5]" }
+          ],
+          "constraints": ["0 <= val <= 1000", "The number of nodes in the list is in the range [0, 1000]"],
+          "hint": "Create a new node, point its next to the current head, return the new node.",
+          "testFile": "TestInsertAtHead",
+          "starterCode": "public class InsertAtHead {\n    public ListNode insertAtHead(ListNode head, int val) {\n        // TODO\n        return head;\n    }\n}"
+        },
+        {
+          "id": "InsertAtTail",
+          "title": "Insert at Tail",
+          "difficulty": "Easy",
+          "link": "https://leetcode.com/problems/design-linked-list/",
+          "description": "Given the head of a linked list and an integer val, insert a new node with that value at the end of the list and return the head.",
+          "examples": [
+            { "input": "head = [1,2,3], val = 4", "output": "[1,2,3,4]" },
+            { "input": "head = [], val = 7",       "output": "[7]" }
+          ],
+          "constraints": ["0 <= val <= 1000", "The number of nodes in the list is in the range [0, 1000]"],
+          "hint": "Traverse to the last node, then attach the new node. Handle empty list as a special case.",
+          "testFile": "TestInsertAtTail",
+          "starterCode": "public class InsertAtTail {\n    public ListNode insertAtTail(ListNode head, int val) {\n        // TODO\n        return head;\n    }\n}"
+        },
+        {
+          "id": "InsertAtIndex",
+          "title": "Insert at Index",
+          "difficulty": "Medium",
+          "link": "https://leetcode.com/problems/design-linked-list/",
+          "description": "Given the head of a linked list, a 0-based index, and an integer val, insert a new node with that value at the given index and return the head. If index equals the list length, append to the end.",
+          "examples": [
+            { "input": "head = [1,2,4,5], index = 2, val = 3", "output": "[1,2,3,4,5]" },
+            { "input": "head = [2,3,4], index = 0, val = 1",   "output": "[1,2,3,4]" }
+          ],
+          "constraints": ["0 <= index <= length of list", "0 <= val <= 1000"],
+          "hint": "Walk to the node at (index - 1), then rewire pointers. Handle index 0 separately.",
+          "testFile": "TestInsertAtIndex",
+          "starterCode": "public class InsertAtIndex {\n    public ListNode insertAtIndex(ListNode head, int index, int val) {\n        // TODO\n        return head;\n    }\n}"
+        },
+        {
+          "id": "DeleteHead",
+          "title": "Delete Head",
+          "difficulty": "Easy",
+          "link": "https://leetcode.com/problems/design-linked-list/",
+          "description": "Given the head of a linked list, delete the head node and return the new head. If the list is empty, return null.",
+          "examples": [
+            { "input": "head = [1,2,3,4]", "output": "[2,3,4]" },
+            { "input": "head = [5]",        "output": "[]" }
+          ],
+          "constraints": ["The number of nodes in the list is in the range [0, 1000]"],
+          "hint": "Simply return head.next. Don't forget to handle the empty list case.",
+          "testFile": "TestDeleteHead",
+          "starterCode": "public class DeleteHead {\n    public ListNode deleteHead(ListNode head) {\n        // TODO\n        return head;\n    }\n}"
+        },
+        {
+          "id": "DeleteAtIndex",
+          "title": "Delete at Index",
+          "difficulty": "Medium",
+          "link": "https://leetcode.com/problems/delete-node-in-a-linked-list/",
+          "description": "Given the head of a linked list and a 0-based index, delete the node at that index and return the head.",
+          "examples": [
+            { "input": "head = [1,2,3,4,5], index = 2", "output": "[1,2,4,5]" },
+            { "input": "head = [1,2,3], index = 0",      "output": "[2,3]" }
+          ],
+          "constraints": ["0 <= index < length of list", "The number of nodes is in the range [1, 1000]"],
+          "hint": "Use a dummy node before head so head deletion needs no special case. Walk to (index-1) and rewire.",
+          "testFile": "TestDeleteAtIndex",
+          "starterCode": "public class DeleteAtIndex {\n    public ListNode deleteAtIndex(ListNode head, int index) {\n        // TODO\n        return head;\n    }\n}"
+        },
+        {
+          "id": "ReverseLinkedList",
+          "title": "Reverse Linked List",
+          "difficulty": "Easy",
+          "link": "https://leetcode.com/problems/reverse-linked-list/",
+          "description": "Given the head of a singly linked list, reverse the list and return the reversed list.",
+          "examples": [
+            { "input": "head = [1,2,3,4,5]", "output": "[5,4,3,2,1]" },
+            { "input": "head = [1,2]",        "output": "[2,1]" },
+            { "input": "head = []",            "output": "[]" }
+          ],
+          "constraints": ["The number of nodes in the list is in the range [0, 5000]", "-5000 <= Node.val <= 5000"],
+          "hint": "Keep track of prev, curr, and next pointers. At each step, reverse the link and advance all three.",
+          "testFile": "TestReverseLinkedList",
+          "starterCode": "public class ReverseLinkedList {\n    public ListNode reverseList(ListNode head) {\n        // TODO\n        return head;\n    }\n}"
+        },
+        {
+          "id": "FindMid",
+          "title": "Find Middle of Linked List",
+          "difficulty": "Easy",
+          "link": "https://leetcode.com/problems/middle-of-the-linked-list/",
+          "description": "Given the head of a singly linked list, return the middle node. If there are two middle nodes, return the second middle node.",
+          "examples": [
+            { "input": "head = [1,2,3,4,5]",   "output": "Node 3 → [3,4,5]" },
+            { "input": "head = [1,2,3,4,5,6]", "output": "Node 4 → [4,5,6]" }
+          ],
+          "constraints": ["The number of nodes in the list is in the range [1, 100]", "1 <= Node.val <= 100"],
+          "hint": "Use slow and fast pointers. Fast moves 2 steps, slow moves 1. When fast reaches end, slow is at middle.",
+          "testFile": "TestFindMid",
+          "starterCode": "public class FindMid {\n    public ListNode middleNode(ListNode head) {\n        // TODO\n        return head;\n    }\n}"
+        },
+        {
+          "id": "DetectCycle",
+          "title": "Detect Cycle",
+          "difficulty": "Easy",
+          "link": "https://leetcode.com/problems/linked-list-cycle/",
+          "description": "Given the head of a linked list, determine if the linked list has a cycle in it. Return true if there is a cycle, otherwise return false.",
+          "examples": [
+            { "input": "head = [3,2,0,-4], pos = 1", "output": "true  (tail connects to node at index 1)" },
+            { "input": "head = [1,2], pos = 0",       "output": "true  (tail connects to node at index 0)" },
+            { "input": "head = [1], pos = -1",         "output": "false (no cycle)" }
+          ],
+          "constraints": ["The number of nodes is in the range [0, 10^4]", "-10^5 <= Node.val <= 10^5"],
+          "hint": "Floyd's algorithm: use a slow pointer (1 step) and fast pointer (2 steps). If they meet, there's a cycle.",
+          "testFile": "TestDetectCycle",
+          "starterCode": "public class DetectCycle {\n    public boolean hasCycle(ListNode head) {\n        // TODO\n        return false;\n    }\n}"
+        },
+        {
+          "id": "FloydCycle",
+          "title": "Floyd's Cycle Detection",
+          "difficulty": "Medium",
+          "link": "https://leetcode.com/problems/linked-list-cycle-ii/",
+          "description": "Given the head of a linked list, return the node where the cycle begins. If there is no cycle, return null. You must solve it with O(1) memory.",
+          "examples": [
+            { "input": "head = [3,2,0,-4], pos = 1", "output": "Node at index 1 (val = 2)" },
+            { "input": "head = [1,2], pos = 0",       "output": "Node at index 0 (val = 1)" },
+            { "input": "head = [1], pos = -1",         "output": "null" }
+          ],
+          "constraints": ["The number of nodes is in the range [0, 10^4]", "-10^5 <= Node.val <= 10^5", "O(1) memory required"],
+          "hint": "Phase 1: detect cycle with slow/fast. Phase 2: reset one pointer to head, move both 1 step at a time — they meet at cycle entry.",
+          "testFile": "TestFloydCycle",
+          "starterCode": "public class FloydCycle {\n    public ListNode detectCycle(ListNode head) {\n        // TODO\n        return null;\n    }\n}"
+        }
+      ]
+    }
+  ]
+}
