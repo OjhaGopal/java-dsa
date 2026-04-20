@@ -29,10 +29,17 @@ function parseOutput(raw: string): ParsedOutput | null {
 export default function ProblemPage() {
   const { topicId, problemId } = useParams<{ topicId: string; problemId: string }>();
 
-  const [problem, setProblem]   = useState<Problem | null>(null);
-  const [code, setCode]         = useState('');
-  const [output, setOutput]     = useState<{ raw: string; running: boolean }>({ raw: '', running: false });
-  const [leftTab, setLeftTab]   = useState<LeftTab>('description');
+  const [problem, setProblem] = useState<Problem | null>(null);
+  const [code, setCode]       = useState('');
+  const [output, setOutput]   = useState<{ raw: string; running: boolean }>({ raw: '', running: false });
+  const [leftTab, setLeftTab] = useState<LeftTab>('description');
+
+  // save state
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstLoad = useRef(true);
 
   // panel sizes
   const [leftW, setLeftW]     = useState(420);
@@ -42,9 +49,10 @@ export default function ProblemPage() {
   const dragging  = useRef<'left' | 'output' | null>(null);
   const dragStart = useRef({ x: 0, y: 0, size: 0 });
 
-  // ── load problem + code ────────────────────────────────────────────────────
+  // ── load problem + code ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!topicId || !problemId) return;
+    isFirstLoad.current = true;
     fetch(`/api/topics/${topicId}/problems`)
       .then(r => r.json())
       .then((problems: Problem[]) => {
@@ -53,10 +61,30 @@ export default function ProblemPage() {
       });
     fetch(`/api/code/${topicId}/${problemId}`)
       .then(r => r.json())
-      .then(({ code: saved }) => setCode(saved));
+      .then(({ code: saved }) => {
+        setCode(saved);
+        // mark first load done after a tick so the code change doesn't trigger auto-save
+        setTimeout(() => { isFirstLoad.current = false; }, 50);
+      });
   }, [topicId, problemId]);
 
-  // ── run ────────────────────────────────────────────────────────────────────
+  // ── auto-save (debounced 1.5 s) ──────────────────────────────────────────────
+  useEffect(() => {
+    if (isFirstLoad.current || !code || !topicId || !problemId) return;
+    setSaveStatus('saving');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      await fetch(`/api/code/${topicId}/${problemId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      setSaveStatus('saved');
+    }, 1500);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [code, topicId, problemId]);
+
+  // ── run ──────────────────────────────────────────────────────────────────────
   async function runCode() {
     if (!problem) return;
     setOutput({ raw: '', running: true });
@@ -67,11 +95,18 @@ export default function ProblemPage() {
     });
     const data = await res.json();
     setOutput({ raw: data.output, running: false });
-    // auto-switch to visualizer after run
     setLeftTab('visualizer');
   }
 
-  // ── drag ───────────────────────────────────────────────────────────────────
+  // ── reset to starter ─────────────────────────────────────────────────────────
+  function resetCode() {
+    if (!problem) return;
+    setCode(problem.starterCode);
+    setOutput({ raw: '', running: false });
+    setConfirmReset(false);
+  }
+
+  // ── drag ─────────────────────────────────────────────────────────────────────
   const onMouseDown = useCallback((type: 'left' | 'output', e: React.MouseEvent) => {
     dragging.current  = type;
     dragStart.current = { x: e.clientX, y: e.clientY, size: type === 'left' ? leftW : outputH };
@@ -94,9 +129,9 @@ export default function ProblemPage() {
   const parsed = parseOutput(output.raw);
 
   const statusPill = output.running ? null
-    : parsed?.type === 'pass'  ? { text: '✓ All Passed',   cls: 'bg-[#1a3a2a] text-[#3fb950]' }
-    : parsed?.type === 'fail'  ? { text: '✗ Some Failed',  cls: 'bg-[#3a1a1a] text-[#f85149]' }
-    : parsed?.type === 'error' ? { text: 'Compile Error',  cls: 'bg-[#3a2a10] text-[#d29922]' }
+    : parsed?.type === 'pass'  ? { text: '✓ All Passed',  cls: 'bg-[#1a3a2a] text-[#3fb950]' }
+    : parsed?.type === 'fail'  ? { text: '✗ Some Failed', cls: 'bg-[#3a1a1a] text-[#f85149]' }
+    : parsed?.type === 'error' ? { text: 'Compile Error', cls: 'bg-[#3a2a10] text-[#d29922]' }
     : null;
 
   return (
@@ -128,8 +163,6 @@ export default function ProblemPage() {
 
         {/* LEFT PANEL */}
         <div style={{ width: leftW }} className="flex-shrink-0 flex flex-col overflow-hidden border-r border-[#30363d]">
-
-          {/* tabs */}
           <div className="flex bg-[#161b22] border-b border-[#30363d] flex-shrink-0">
             {(['description', 'visualizer'] as LeftTab[]).map(tab => (
               <button key={tab} onClick={() => setLeftTab(tab)}
@@ -141,8 +174,6 @@ export default function ProblemPage() {
               </button>
             ))}
           </div>
-
-          {/* tab content */}
           <div className="flex-1 overflow-hidden">
             {leftTab === 'description'
               ? <DescriptionPanel problem={problem} />
@@ -160,16 +191,44 @@ export default function ProblemPage() {
           {/* toolbar */}
           <div className="h-10 bg-[#161b22] border-b border-[#30363d] flex items-center px-3 gap-2 flex-shrink-0">
             <span className="text-xs text-[#8b949e]">Java</span>
-            <div className="ml-auto flex gap-2">
-              <button onClick={() => { if (problem) setCode(problem.starterCode); setOutput({ raw: '', running: false }); }}
-                className="px-3 py-1 text-xs font-semibold rounded bg-[#21262d] text-[#58a6ff]
-                  border border-[#30363d] hover:bg-[#30363d] transition-colors cursor-pointer">
-                ↺ Reset
-              </button>
+
+            {/* save indicator */}
+            {saveStatus === 'saving' && (
+              <span className="text-[10px] text-[#484f58] flex items-center gap-1">
+                <span className="w-2 h-2 border border-[#484f58] border-t-[#8b949e] rounded-full animate-spin inline-block" />
+                saving…
+              </span>
+            )}
+            {saveStatus === 'saved' && (
+              <span className="text-[10px] text-[#3fb95099]">✓ saved</span>
+            )}
+
+            <div className="ml-auto flex items-center gap-2">
+              {/* reset — shows inline confirm on first click */}
+              {confirmReset ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-[#d29922]">Reset to starter?</span>
+                  <button onClick={resetCode}
+                    className="px-2 py-0.5 text-[10px] font-bold rounded bg-[#3a2a10] text-[#d29922] border border-[#d2992244] hover:bg-[#4a3a20] transition-colors cursor-pointer">
+                    Yes
+                  </button>
+                  <button onClick={() => setConfirmReset(false)}
+                    className="px-2 py-0.5 text-[10px] rounded bg-[#21262d] text-[#8b949e] border border-[#30363d] hover:bg-[#30363d] transition-colors cursor-pointer">
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmReset(true)}
+                  className="px-3 py-1 text-xs font-semibold rounded bg-[#21262d] text-[#8b949e]
+                    border border-[#30363d] hover:bg-[#30363d] hover:text-[#c9d1d9] transition-colors cursor-pointer">
+                  ↺ Reset
+                </button>
+              )}
+
               <button onClick={runCode} disabled={!problem || output.running}
                 className="px-4 py-1 text-xs font-bold rounded bg-[#238636] text-white
                   hover:bg-[#2ea043] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
-                {output.running ? '⏳ Running...' : '▶ Run Tests'}
+                {output.running ? '⏳ Running…' : '▶ Run Tests'}
               </button>
             </div>
           </div>

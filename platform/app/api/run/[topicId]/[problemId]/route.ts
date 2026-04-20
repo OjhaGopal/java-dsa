@@ -18,7 +18,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ topicId
   const dir      = resolveDir(topic!);
   const testsDir = resolveTestsDir(topic!);
 
-  // save solution file (no comment header needed)
+  fs.mkdirSync(dir, { recursive: true });
+
+  // bootstrap shared files from nodeDefinition only when they don't exist on disk
+  if (topic!.nodeDefinition && topic!.sharedFiles?.length) {
+    const sharedPath = path.join(dir, topic!.sharedFiles[0]);
+    if (!fs.existsSync(sharedPath)) {
+      fs.writeFileSync(sharedPath, topic!.nodeDefinition, 'utf8');
+    }
+  }
+
+  // save solution file
   fs.writeFileSync(path.join(dir, `${problemId}.java`), code, 'utf8');
 
   const shared   = (topic!.sharedFiles || []).map(f => `"${path.join(dir, f)}"`).join(' ');

@@ -3,8 +3,8 @@
     {
       "id": "LinkedList",
       "label": "Linked List",
-      "dir": "../../LinkedList",
-      "testsDir": "../../LinkedList/tests",
+      "dir": "../LinkedList",
+      "testsDir": "../LinkedList/tests",
       "sharedFiles": ["ListNode.java"],
       "nodeDefinition": "public class ListNode {\n    int val;\n    ListNode next;\n    ListNode(int val) { this.val = val; }\n    ListNode(int val, ListNode next) { this.val = val; this.next = next; }\n}",
       "problems": [
