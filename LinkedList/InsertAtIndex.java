@@ -1,6 +1,7 @@
 public class InsertAtIndex {
     public ListNode insertAtIndex(ListNode head, int index, int val) {
         // TODO
+<<<<<<< Updated upstream
         ListNode n1 = new ListNode(val);
 
 
@@ -18,6 +19,10 @@ public class InsertAtIndex {
         ListNode temp1=temp.next;
         temp.next=n1;
         n1.next=temp1;
+=======
+
+        
+>>>>>>> Stashed changes
         return head;
     }
 }
